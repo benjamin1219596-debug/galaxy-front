@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Galaxy Front — Batalla espacial</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040d;color:white;font-family:Arial,sans-serif}canvas{display:block;width:100vw;height:100vh}
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#02040deF,#071a31c9,#02040df0);z-index:2}.panel{width:min(610px,92vw);padding:28px;border:1px solid #54dfff88;border-radius:16px;background:#050d1deF;box-shadow:0 0 70px #00c8ff25}
+h1{font-size:clamp(32px,7vw,62px);font-style:italic;line-height:.88;margin:0;text-transform:uppercase;text-shadow:0 0 25px #19bfff77}h1 span{color:#55e5ff}p{color:#c4d9ed;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:18px 0}.key{font-size:12px;text-align:center;background:#10223a;border:1px solid #34516e;padding:9px 3px;border-radius:7px;color:#c5d9e9}.key b{display:block;font-size:18px;color:#fff;margin-bottom:3px}
+button{border:0;border-radius:8px;padding:14px 20px;background:linear-gradient(90deg,#10bde8,#65efff);font-weight:900;letter-spacing:.08em;cursor:pointer;color:#03101a}
+#hud{display:none;position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.top{position:absolute;top:16px;left:18px;background:#020915bb;border:1px solid #59dfff66;border-radius:8px;padding:11px 14px}.big{font-size:28px;font-weight:900;font-style:italic}.right{position:absolute;right:18px;top:16px;text-align:right;background:#020915bb;border:1px solid #59dfff66;border-radius:8px;padding:11px 14px}.help{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:#020915c9;padding:8px 12px;border-radius:7px;white-space:nowrap;font-size:12px;color:#cce8f8}
+#pause{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:#0009;font-size:46px;font-weight:900;font-style:italic;z-index:3}
+#mobileControls{display:none;position:fixed;inset:auto 0 12px 0;z-index:5;pointer-events:none;justify-content:space-between;align-items:end;padding:0 14px;gap:10px}
+.pad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:5px;pointer-events:auto}
+.pad button,.actionpad button{padding:0;border-radius:13px;border:1px solid #83eaff99;background:#08213dcc;color:#eafaff;font-size:18px;font-weight:900;box-shadow:0 4px 16px #0008;touch-action:none;user-select:none;-webkit-user-select:none}
+.pad .empty{visibility:hidden}
+.actionpad{display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.actionpad button{width:74px;height:54px;font-size:12px;background:#0a4c70dd}
+.actionpad .fire{background:#a51e42dd;border-color:#ff9db3aa}
+@media(max-width:800px),(pointer:coarse){#mobileControls{display:flex}.help{bottom:148px;font-size:10px;max-width:94vw;white-space:normal;text-align:center}.top{top:8px;left:8px;padding:8px 10px}.right{top:8px;right:8px;padding:8px 10px}.big{font-size:22px}.card{padding:22px 17px}.grid{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><canvas id="c"></canvas>
+<div id="mobileControls">
+ <div class="pad">
+  <button class="empty"></button><button data-hold="w">▲</button><button class="empty"></button>
+  <button data-hold="a">◀</button><button data-hold="s">▼</button><button data-hold="d">▶</button>
+ </div>
+ <div class="actionpad"><button class="fire" data-hold=" ">DISPARAR</button><button data-hold="shift">TURBO</button><button id="touchPause">PAUSA</button></div>
+</div>
+<div id="menu"><div class="panel"><h1>Galaxy <span>Front</span></h1><p>¡Pilota un caza estelar en una batalla por la galaxia! Esquiva asteroides, derriba cazas enemigos y dispara rayos láser en un campo de estrellas.</p><div class="grid">
+<div class="key"><b>W / ↑</b>Avanzar</div><div class="key"><b>A / D</b>Moverse</div><div class="key"><b>ESPACIO</b>Láser</div><div class="key"><b>SHIFT</b>Turbo</div><div class="key"><b>S / ↓</b>Frenar</div><div class="key"><b>P</b>Pausa</div><div class="key"><b>R</b>Reiniciar</div><div class="key"><b>ESC</b>Menú</div>
+</div><button id="go">INICIAR MISIÓN ▶</button></div></div>
+<div id="hud"><div class="top"><div style="font-size:10px;letter-spacing:.18em;color:#64e5ff">TU VIDA / ESCUDO</div><div class="big" id="shield">100%</div><div style="width:150px;height:5px;background:#20364a;border-radius:5px"><div id="bar" style="height:100%;width:100%;background:#39e7ff;border-radius:5px"></div></div><div id="bossHud" style="display:none;margin-top:8px;font-size:11px;color:#ff8eaa">REY GALÁCTICO <div style="width:150px;height:5px;background:#42202b;margin-top:4px"><div id="bossBar" style="height:100%;width:100%;background:#ff405f"></div></div></div></div><div class="right"><div style="font-size:10px;letter-spacing:.18em;color:#64e5ff">PUNTOS</div><div class="big" id="score">0000</div><div style="font-size:12px;color:#ffd66b" id="coins">🪙 0 monedas</div><div style="font-size:12px;color:#bed8e9" id="wave">Cazas enemigos: 0</div></div><div class="help">W/↑ avanzar · A/D moverse · Disparo automático · SHIFT turbo · P pausa</div></div><div id="pause">MISIÓN EN PAUSA</div>
+<script>
+const canvas=document.querySelector('#c'),ctx=canvas.getContext('2d');let W,H,D;
+function resize(){D=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*D;canvas.height=H*D;ctx.setTransform(D,0,0,D,0,0)}addEventListener('resize',resize);resize();
+const keys={};let active=false,paused=false,shipX=0,shipY=0,shield=100,score=0,coins=0,shots=[],enemies=[],rocks=[],stars=[],spawn=0,frame=0,turbo=100,shake=0,boss=null,bossSpawned=false,deathHandled=false; let audioCtx=null;
+function reset(){shipX=0;shipY=0;shield=100;score=0;shots=[];enemies=[];rocks=[];spawn=0;frame=0;turbo=100;stars=Array.from({length:180},()=>({x:Math.random()*W,y:Math.random()*H,z:.3+Math.random()*1.7,r:.4+Math.random()*1.5}));for(let i=0;i<7;i++)rocks.push({x:Math.random()*W,y:Math.random()*H, r:12+Math.random()*25,s:.8+Math.random()*1.8,rot:Math.random()*6})}
+addEventListener('keydown',e=>{let k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(!keys[k]){if(k==='p'&&active)paused=!paused;if(k==='r'&&active)reset();if(k==='escape'){active=false;paused=false;document.querySelector('#menu').style.display='flex';document.querySelector('#hud').style.display='none'}}keys[k]=true});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function ship(x,y,s,color,enemy=false){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,10,24,12,0,0,Math.PI*2);ctx.fill();
+ // twin engines
+ for(let q of [-1,1]){ctx.fillStyle='#1c3b54';ctx.beginPath();ctx.roundRect(q*13-5,7,10,20,4);ctx.fill();ctx.fillStyle=enemy?'#ff7545':'#30dcff';ctx.shadowBlur=15;ctx.shadowColor=ctx.fillStyle;ctx.fillRect(q*13-3,18,6,10+Math.random()*5);ctx.shadowBlur=0}
+ // wings and fuselage
+ let main=enemy?'#5a2532':'#91aebf',hi=enemy?'#ff755d':'#e1f4ff';
+ poly([[-7,-5],[-38,10],[-27,18],[-8,13],[0,28],[8,13],[27,18],[38,10],[7,-5],[5,-25],[0,-35],[-5,-25]],main,'#101a29');
+ poly([[-6,-6],[-30,11],[-12,9],[0,22],[12,9],[30,11],[6,-6],[3,-23],[0,-29],[-3,-23]],hi);
+ poly([[-4,-10],[0,-31],[4,-10],[2,8],[-2,8]],'#274c67');
+ poly([[-5,-10],[0,-26],[5,-10],[2,2],[-2,2]],'#69cce9');
+ ctx.strokeStyle=enemy?'#ffb1a2':'#ffffffaa';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-27,11);ctx.lineTo(-10,5);ctx.moveTo(27,11);ctx.lineTo(10,5);ctx.stroke();
+ ctx.restore()}
+function poly(p,fill,stroke){ctx.beginPath();p.forEach((v,i)=>i?ctx.lineTo(v[0],v[1]):ctx.moveTo(v[0],v[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function draw(){ctx.fillStyle='#020611';ctx.fillRect(0,0,W,H);
+ let neb=ctx.createRadialGradient(W*.72,H*.3,5,W*.72,H*.3,W*.6);neb.addColorStop(0,'#173c6c55');neb.addColorStop(.5,'#13214d33');neb.addColorStop(1,'#02061100');ctx.fillStyle=neb;ctx.fillRect(0,0,W,H);
+ stars.forEach(s=>{s.y+=s.z*(keys.shift?4:1.5);if(s.y>H){s.y=0;s.x=Math.random()*W}ctx.fillStyle=`rgba(210,235,255,${.25+s.z*.35})`;ctx.fillRect(s.x,s.y,s.r,s.r*(keys.shift?4:1))});
+ // distant planet
+ ctx.fillStyle='#5c7aa522';ctx.beginPath();ctx.arc(W*.16,H*.23,Math.min(W,H)*.11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#76baff44';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(W*.16,H*.23,Math.min(W,H)*.15,Math.min(W,H)*.045,-.2,0,Math.PI*2);ctx.stroke();
+ rocks.forEach(r=>{r.y+=r.s*(keys.shift?2:1);r.rot+=.006; if(r.y>H+50){r.y=-40;r.x=Math.random()*W}ctx.save();ctx.translate(r.x,r.y);ctx.rotate(r.rot);ctx.fillStyle='#46515e';ctx.strokeStyle='#8291a1';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<9;i++){let a=i*Math.PI*2/9,rr=r.r*(.7+Math.sin(i*8+r.rot)*.22);ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#252e3a';ctx.beginPath();ctx.arc(-r.r*.2,-r.r*.15,r.r*.2,0,6.28);ctx.fill();ctx.restore()});
+ shots.forEach(s=>{ctx.shadowBlur=14;ctx.shadowColor=s.enemy?'#ff4a5b':'#35f5ff';ctx.fillStyle=s.enemy?'#ff6c65':'#9ffaff';ctx.fillRect(s.x-2,s.y-12,4,19);ctx.shadowBlur=0});
+ enemies.forEach(e=>{ship(e.x,e.y,e.size,'',true);if(e.y>0){ctx.fillStyle='#381d2c';ctx.fillRect(e.x-22,e.y-43,44,5);ctx.fillStyle='#ff4968';ctx.fillRect(e.x-22,e.y-43,44*Math.max(0,e.hp/e.maxHp),5)}});drawBoss();
+ ship(W*.5+shipX,H*.79+shipY,1.25,'');
+ // reticle
+ ctx.strokeStyle='#4eeeff88';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W/2,H*.52,16,0,6.28);ctx.moveTo(W/2-24,H*.52);ctx.lineTo(W/2-9,H*.52);ctx.moveTo(W/2+9,H*.52);ctx.lineTo(W/2+24,H*.52);ctx.moveTo(W/2,H*.52-24);ctx.lineTo(W/2,H*.52-9);ctx.moveTo(W/2,H*.52+9);ctx.lineTo(W/2,H*.52+24);ctx.stroke();
+ if(shake>0){ctx.fillStyle='#ff243322';ctx.fillRect(0,0,W,H)}}
+let lastShot=0;
+function loop(){if(active&&!paused){frame++;let fast=keys.shift&&turbo>0;if(fast)turbo=Math.max(0,turbo-.5);else turbo=Math.min(100,turbo+.12);let sp=fast?7:4;shipX+=((keys.d||keys.arrowright)?sp:0)-((keys.a||keys.arrowleft)?sp:0);shipY+=((keys.s||keys.arrowdown)?sp:0)-((keys.w||keys.arrowup)?sp:0);shipX=Math.max(-W*.42,Math.min(W*.42,shipX));shipY=Math.max(-H*.25,Math.min(H*.25,shipY));
+ if(performance.now()-lastShot>190){shots.push({x:W/2+shipX,y:H*.78+shipY-25});lastShot=performance.now();sound('laser')}
+ spawn++;if(spawn>65){spawn=0;if(!bossSpawned&&score>=1200){boss={x:W/2,y:-90,hp:35,maxHp:35,dir:1,shot:0};bossSpawned=true;sound('boss')}else if(!bossSpawned||!boss){let hp=2+Math.floor(Math.random()*2);enemies.push({x:W*.12+Math.random()*W*.76,y:-50,size:.6+Math.random()*.35,hp:hp,maxHp:hp,s:1.6+Math.random()*1.5})}}
+ shots.forEach(s=>s.y-=13);enemies.forEach(e=>{e.y+=e.s+(keys.shift?1:0);if(Math.random()<.018)shots.push({x:e.x,y:e.y+25,enemy:true})}); if(boss){boss.y=Math.min(H*.25,boss.y+1.2);boss.x+=boss.dir*2.2;if(boss.x>W*.78||boss.x<W*.22)boss.dir*=-1;boss.shot++;if(boss.shot%48===0){shots.push({x:boss.x-28,y:boss.y+35,enemy:true});shots.push({x:boss.x+28,y:boss.y+35,enemy:true})}}shots.forEach(s=>{if(!s.enemy){enemies.forEach(e=>{if(Math.hypot(s.x-e.x,s.y-e.y)<34){e.hp--;s.y=-999;sound('hit');if(e.hp<=0){e.dead=true;score+=100;coins+=5;sound('coin')}}});if(boss&&Math.hypot(s.x-boss.x,s.y-boss.y)<76){boss.hp--;s.y=-999;sound('hit');if(boss.hp<=0){boss=null;score+=1000;coins+=50;sound('coin');document.querySelector('#bossHud').style.display='none';document.querySelector('#wave').textContent='¡REY GALÁCTICO DERROTADO!'}}}});shots=shots.filter(s=>s.y>-30&&s.y<H+40);enemies=enemies.filter(e=>!e.dead&&e.y<H+80);shots.forEach(s=>{if(s.enemy&&Math.hypot(s.x-(W/2+shipX),s.y-(H*.79+shipY))<32){s.y=H+99;shield=Math.max(0,shield-8);shake=8;sound('hit')}});if(boss&&Math.hypot(boss.x-(W/2+shipX),boss.y-(H*.79+shipY))<85){shield=Math.max(0,shield-.15)}if(boss){document.querySelector('#bossHud').style.display='block';document.querySelector('#bossBar').style.width=(100*boss.hp/boss.maxHp)+'%'}if(shield<=0&&!deathHandled){deathHandled=true;active=false;sound('death');document.querySelector('#menu').style.display='flex';document.querySelector('.panel p').textContent='¡Tu nave fue destruida! Puntuación: '+score+' · Monedas: '+coins+'. Volvé a iniciar la misión.'}
+ document.querySelector('#shield').textContent=shield+'%';document.querySelector('#bar').style.width=shield+'%';document.querySelector('#score').textContent=String(score).padStart(4,'0');document.querySelector('#wave').textContent=boss?'¡REY GALÁCTICO!':'Cazas enemigos: '+enemies.length;document.querySelector('#coins').textContent='🪙 '+coins+' monedas';shake=Math.max(0,shake-.25)}
+ draw();document.querySelector('#pause').style.display=paused?'flex':'none';requestAnimationFrame(loop)}
+document.querySelector('#go').onclick=()=>{reset();resetExtra();active=true;paused=false;document.querySelector('#menu').style.display='none';document.querySelector('#hud').style.display='block'};
+document.querySelectorAll('[data-hold]').forEach(btn=>{
+ const key=btn.getAttribute('data-hold');
+ const down=e=>{e.preventDefault();keys[key]=true;};
+ const up=e=>{e.preventDefault();keys[key]=false;};
+ btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);
+ btn.addEventListener('pointercancel',up);btn.addEventListener('pointerleave',up);
+});
+document.querySelector('#touchPause').addEventListener('click',()=>{if(active)paused=!paused;});
+reset();requestAnimationFrame(loop);
+</script></body></html>
